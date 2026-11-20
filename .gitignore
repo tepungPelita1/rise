@@ -7,6 +7,6 @@ data/
 # Homelab / private deployment (stays local)
 docs/HOMELAB.md
 deploy.ps1
-server/
+/server/
 docker-compose.yml
 .env.example
