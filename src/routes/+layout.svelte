@@ -20,6 +20,7 @@
 		X
 	} from '@lucide/svelte';
 	import { toast, notify, undoDrop } from '#lib/toast.svelte.ts';
+	import LockSwitch from '#lib/components/LockSwitch.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -32,6 +33,9 @@
 		{ href: '/done', label: 'Done' },
 		{ href: '/review', label: 'Review' }
 	];
+
+	const onLock = $derived(page.url.pathname === '/unlock');
+	const showSwitch = $derived(data.lockEnabled && data.unlocked && !onLock);
 
 	let open = $state(false);
 	let more = $state(false);
@@ -98,12 +102,15 @@
 </script>
 
 <svelte:window onkeydown={onKey} />
-<svelte:head><title>Rise</title></svelte:head>
+<svelte:head><title>{onLock ? 'Rise · Locked' : 'Rise'}</title></svelte:head>
 
 <div class="blobs" aria-hidden="true">
 	<span class="b1"></span><span class="b2"></span><span class="b3"></span><span class="b4"></span>
 </div>
 
+{#if onLock}
+	{@render children()}
+{:else}
 <div class="frame">
 	<header class="top">
 		<a class="brand" href="/" aria-label="Rise home">
@@ -129,6 +136,7 @@
 		</nav>
 
 		<div class="right">
+			{#if showSwitch}<LockSwitch />{/if}
 			<button class="icon" onclick={toggleTheme} aria-label={theme === 'dark' ? 'Light mode' : 'Dark mode'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
 				{#if theme === 'dark'}<SunMedium size={18} />{:else}<Moon size={18} />{/if}
 			</button>
@@ -186,6 +194,7 @@
 				</a>
 			{/each}
 		</div>
+		{#if showSwitch}<div class="lock-row"><LockSwitch /></div>{/if}
 		<button class="btn theme-row" onclick={toggleTheme}>
 			{#if theme === 'dark'}<SunMedium size={16} aria-hidden="true" /> Light mode{:else}<Moon size={16} aria-hidden="true" /> Dark mode{/if}
 		</button>
@@ -224,6 +233,8 @@
 			</div>
 		</form>
 	</div>
+{/if}
+
 {/if}
 
 {#if toast.msg}
@@ -535,6 +546,11 @@
 	.tile.active {
 		outline: 3px solid var(--ink);
 		outline-offset: 3px;
+	}
+	.lock-row {
+		display: flex;
+		justify-content: center;
+		margin-top: 14px;
 	}
 	.theme-row {
 		width: 100%;

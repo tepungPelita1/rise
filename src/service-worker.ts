@@ -44,7 +44,8 @@ self.addEventListener('fetch', (event) => {
 	event.respondWith(
 		fetch(req)
 			.then((res) => {
-				if (res.ok) {
+				// never keep the lock screen (or anything reached via a redirect) as a page copy
+				if (res.ok && !res.redirected && url.pathname !== '/unlock') {
 					const copy = res.clone();
 					caches.open(PAGES).then((c) => c.put(req, copy));
 				}

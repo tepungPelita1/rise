@@ -1,5 +1,6 @@
 import type { Handle } from '@sveltejs/kit/hooks';
 import { dev } from '$app/env';
+import { isPublicPath, isUnlocked } from '#lib/server/gate.ts';
 
 /**
  * CSRF protection with an allowlist, so Rise works from more than one address
@@ -50,5 +51,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		}
 	}
+
+	// PIN lock: nothing but the lock screen, health check and static assets without a valid cookie
+	const path = event.url.pathname;
+	event.locals.unlocked = isUnlocked(event.cookies);
+	if (!event.locals.unlocked && !isPublicPath(path)) {
+		const wantsPage = request.method === 'GET' && (request.headers.get('accept') ?? '').includes('text/html');
+		if (wantsPage) {
+			const next = encodeURIComponent(path + event.url.search);
+			return new Response(null, { status: 303, headers: { location: `/unlock?next=${next}` } });
+		}
+		return new Response(JSON.stringify({ message: 'Locked' }), {
+			status: 401,
+			headers: { 'content-type': 'application/json' }
+		});
+	}
+	if (event.locals.unlocked && path === '/unlock' && request.method === 'GET') {
+		return new Response(null, { status: 303, headers: { location: '/' } });
+	}
+
 	return resolve(event);
 };
