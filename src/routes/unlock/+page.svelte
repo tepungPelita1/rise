@@ -42,9 +42,9 @@
 	});
 
 	function onInput() {
-		pin = pin.replace(/\D/g, '').slice(0, 4);
+		pin = pin.replace(/\D/g, '').slice(0, data.pinLength);
 		message = '';
-		if (pin.length === 4 && !busy) form?.requestSubmit();
+		if (pin.length === data.pinLength && !busy) form?.requestSubmit();
 	}
 
 	async function shake(msg: string) {
@@ -111,7 +111,7 @@
 			<p class="note">PIN is not set up on the server yet.</p>
 		{:else}
 			<label class="pinwrap" class:disabled={lockedOut}>
-				<span class="sr-only">4-digit PIN</span>
+				<span class="sr-only">{data.pinLength}-digit PIN</span>
 				<input
 					bind:this={input}
 					bind:value={pin}
@@ -120,14 +120,14 @@
 					type="password"
 					inputmode="numeric"
 					pattern="[0-9]*"
-					maxlength="4"
+					maxlength={data.pinLength}
 					autocomplete="off"
 					disabled={lockedOut || opening}
 					aria-invalid={message ? 'true' : undefined}
 					aria-describedby="pin-msg"
 				/>
 				<span class="boxes" aria-hidden="true">
-					{#each [0, 1, 2, 3] as i (i)}
+					{#each Array.from({ length: data.pinLength }, (_, i) => i) as i (i)}
 						<span class="box b{i}" class:filled={pin.length > i} class:current={pin.length === i && !lockedOut}>
 							{#if pin.length > i}<span class="dot"></span>{/if}
 						</span>
@@ -274,14 +274,14 @@
 	}
 	.boxes {
 		display: flex;
-		gap: 12px;
+		gap: clamp(6px, 2vw, 10px);
 	}
 	.box {
 		display: grid;
 		place-items: center;
-		width: 58px;
-		height: 68px;
-		border-radius: 18px;
+		width: clamp(38px, 11vw, 54px);
+		height: clamp(48px, 14vw, 64px);
+		border-radius: 16px;
 		border: 2px solid var(--border);
 		background: var(--surface);
 		transition:
@@ -300,6 +300,8 @@
 	.b1.filled { background: var(--sky); }
 	.b2.filled { background: var(--life); }
 	.b3.filled { background: var(--self); }
+	.b4.filled { background: var(--lime); }
+	.b5.filled { background: var(--blob-4); }
 	.dot {
 		width: 14px;
 		height: 14px;
@@ -341,12 +343,6 @@
 		accent-color: var(--ink);
 	}
 
-	@media (max-width: 380px) {
-		.box {
-			width: 52px;
-			height: 62px;
-		}
-	}
 	@media (prefers-reduced-motion: reduce) {
 		.glass,
 		.card {

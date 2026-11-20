@@ -10,7 +10,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { hashPin, isValidPinFormat } from '../src/lib/server/lock.ts';
+import { PIN_LENGTH, hashPin, isValidPinFormat } from '../src/lib/server/lock.ts';
 
 function ask(prompt) {
 	return new Promise((resolve, reject) => {
@@ -52,9 +52,9 @@ function ask(prompt) {
 const i = process.argv.indexOf('--server');
 const server = i > -1 ? process.argv[i + 1] : null;
 
-const pin = await ask('New 4-digit PIN: ');
+const pin = await ask(`New ${PIN_LENGTH}-digit PIN: `);
 if (!isValidPinFormat(pin)) {
-	console.error('PIN must be exactly 4 digits. Nothing changed.');
+	console.error(`PIN must be exactly ${PIN_LENGTH} digits. Nothing changed.`);
 	process.exit(1);
 }
 if ((await ask('Again: ')) !== pin) {

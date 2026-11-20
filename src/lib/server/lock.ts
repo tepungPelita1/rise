@@ -14,8 +14,10 @@ export const REMEMBER_SECONDS = 400 * 24 * 60 * 60;
 
 const KEYLEN = 32;
 
+export const PIN_LENGTH = 6;
+
 export function isValidPinFormat(pin: string): boolean {
-	return /^\d{4}$/.test(pin);
+	return pin.length === PIN_LENGTH && /^\d+$/.test(pin);
 }
 
 export function hashPin(pin: string): string {

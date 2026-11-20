@@ -9,7 +9,7 @@ Only the owner uses Rise. Other people must see nothing, and the owner's own dev
 
 ## Goals
 - A frosted lock screen. The Rise pastel blobs show through blurred glass, with the centred text
-  "Enter PIN to see progress, tepungPelita" and 4 digit boxes.
+  "Enter PIN to see progress, tepungPelita" and 6 digit boxes.
 - An unlock animation that "opens" into the dashboard.
 - A "Remember this device" checkbox, ticked by default. When ticked, the browser stays unlocked until
   the owner locks it. When unticked, the unlock ends when the browser closes.
@@ -34,7 +34,7 @@ Only the owner uses Rise. Other people must see nothing, and the owner's own dev
    custom screen and animation are not possible.
 
 ## Decided
-- 4-digit PIN. The server stores only an scrypt hash, in `RISE_PIN_HASH` in `~/rise/.env`. The cookie
+- 6-digit PIN. The server stores only an scrypt hash, in `RISE_PIN_HASH` in `~/rise/.env`. The cookie
   signing key is `RISE_SECRET`, in the same file. Changing the PIN rotates the secret, which locks
   every device.
 - The lockout counter is global, not per IP, because attackers can rotate IPs. Devices that already

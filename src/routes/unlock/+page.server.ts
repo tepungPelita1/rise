@@ -1,11 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { isValidPinFormat, verifyPin } from '#lib/server/lock.ts';
+import { PIN_LENGTH, isValidPinFormat, verifyPin } from '#lib/server/lock.ts';
 import { clearUnlocked, config, isHttps, limiter, safeNext, setUnlocked } from '#lib/server/gate.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
 	const s = limiter.status(Date.now());
-	return { configured: config.configured, retryAt: s.locked ? s.retryAt : null };
+	return { configured: config.configured, retryAt: s.locked ? s.retryAt : null, pinLength: PIN_LENGTH };
 };
 
 export const actions: Actions = {
@@ -18,7 +18,7 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const pin = String(form.get('pin') ?? '');
-		if (!isValidPinFormat(pin)) return fail(400, { message: 'PIN is 4 digits.' });
+		if (!isValidPinFormat(pin)) return fail(400, { message: `PIN is ${PIN_LENGTH} digits.` });
 
 		if (!verifyPin(pin, config.hash!)) {
 			limiter.fail(now);

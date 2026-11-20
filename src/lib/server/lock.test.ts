@@ -21,9 +21,10 @@ test('hash + verify', () => {
 });
 
 test('pin format', () => {
-	assert.equal(isValidPinFormat('1234'), true);
-	assert.equal(isValidPinFormat('12a4'), false);
-	assert.equal(isValidPinFormat('12345'), false);
+	assert.equal(isValidPinFormat('123456'), true);
+	assert.equal(isValidPinFormat('1234'), false);
+	assert.equal(isValidPinFormat('12a456'), false);
+	assert.equal(isValidPinFormat('1234567'), false);
 	assert.equal(isValidPinFormat(''), false);
 });
 
