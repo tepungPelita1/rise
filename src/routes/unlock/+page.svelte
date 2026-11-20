@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { tick } from 'svelte';
 	import type { PageProps } from './$types';
+	import SnakeGame from '#lib/components/SnakeGame.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -16,6 +17,7 @@
 	let now = $state(Date.now());
 	let input: HTMLInputElement | undefined = $state();
 	let form: HTMLFormElement | undefined = $state();
+	let playing = $state(false);
 
 	$effect(() => {
 		retryAt = data.retryAt;
@@ -62,9 +64,14 @@
 
 
 <div class="lock" class:opening>
-	<div class="glass left" aria-hidden="true"></div>
-	<div class="glass right" aria-hidden="true"></div>
+	<div class="glass" aria-hidden="true"></div>
 
+	<div class="stack">
+	{#if playing}
+		<section class="card game" aria-label="Mini game">
+			<SnakeGame />
+		</section>
+	{:else}
 	<form
 		bind:this={form}
 		class="card"
@@ -153,6 +160,14 @@
 			</label>
 		{/if}
 	</form>
+	{/if}
+
+	{#if !opening}
+		<button type="button" class="toggle" onclick={() => (playing = !playing)}>
+			{playing ? '🔒 balik masuk PIN' : '🐍 bosan? main game'}
+		</button>
+	{/if}
+	</div>
 </div>
 
 <style>
@@ -166,36 +181,56 @@
 		overflow: hidden;
 	}
 
-	/* frosted glass in two halves so it can split open */
+	/* one seamless frosted pane; on unlock a zero-width gap in the middle
+	   widens outward (clip-path), so it still "splits open" with no seam at rest */
 	.glass {
 		position: absolute;
-		top: 0;
-		bottom: 0;
-		width: 50.5%;
-		background: color-mix(in srgb, var(--bg) 45%, transparent);
-		backdrop-filter: blur(28px) saturate(1.3);
-		-webkit-backdrop-filter: blur(28px) saturate(1.3);
-		transition: transform 800ms cubic-bezier(0.7, 0, 0.2, 1);
+		inset: 0;
+		background: color-mix(in srgb, var(--bg) 55%, transparent);
+		backdrop-filter: blur(28px) saturate(1.1);
+		-webkit-backdrop-filter: blur(28px) saturate(1.1);
+		clip-path: polygon(0 0, 50% 0, 50% 100%, 50% 100%, 50% 0, 100% 0, 100% 100%, 0 100%);
+		transition: clip-path 800ms cubic-bezier(0.7, 0, 0.2, 1);
 	}
-	.glass.left {
-		left: 0;
-		border-right: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-	}
-	.glass.right {
-		right: 0;
-	}
-	.opening .glass.left {
-		transform: translateX(-101%);
-	}
-	.opening .glass.right {
-		transform: translateX(101%);
+	.opening .glass {
+		clip-path: polygon(0 0, 0 0, 0 100%, 100% 100%, 100% 0, 100% 0, 100% 100%, 0 100%);
 	}
 
+	.stack {
+		position: relative;
+		display: grid;
+		justify-items: center;
+		gap: 12px;
+		width: min(360px, 100%);
+	}
+	.toggle {
+		padding: 10px 18px;
+		border-radius: 999px;
+		border: 2px solid var(--ink);
+		background: var(--lime);
+		color: var(--on-pastel);
+		font-family: var(--font-mono);
+		font-size: 13px;
+		cursor: pointer;
+		box-shadow: 3px 3px 0 var(--ink);
+		transition: transform 120ms ease, box-shadow 120ms ease;
+	}
+	.toggle:hover {
+		transform: translate(-1px, -1px);
+		box-shadow: 4px 4px 0 var(--ink);
+	}
+	.toggle:active {
+		transform: translate(2px, 2px);
+		box-shadow: 1px 1px 0 var(--ink);
+	}
+	.card.game {
+		padding: 20px 18px 16px;
+	}
 	.card {
 		position: relative;
-		width: min(440px, 100%);
-		padding: 36px 28px 26px;
-		border-radius: 32px;
+		width: min(360px, 100%);
+		padding: 26px 22px 20px;
+		border-radius: 28px;
 		background: color-mix(in srgb, var(--surface) 70%, transparent);
 		border: 1px solid var(--border);
 		box-shadow: var(--shadow-lift);
@@ -228,9 +263,9 @@
 	}
 	.star {
 		display: block;
-		width: 44px;
-		height: 44px;
-		margin: 18px auto 10px;
+		width: 34px;
+		height: 34px;
+		margin: 14px auto 8px;
 		fill: var(--ink);
 		animation: spin 14s linear infinite;
 	}
@@ -241,11 +276,11 @@
 		to { transform: rotate(360deg); }
 	}
 	h1 {
-		margin: 0 0 22px;
+		margin: 0 0 18px;
 		font-family: var(--font-display);
 		font-weight: 800;
 		font-stretch: 80%;
-		font-size: clamp(26px, 6vw, 34px);
+		font-size: clamp(22px, 5.5vw, 27px);
 		line-height: 1.05;
 		letter-spacing: -0.03em;
 	}
@@ -274,14 +309,14 @@
 	}
 	.boxes {
 		display: flex;
-		gap: clamp(6px, 2vw, 10px);
+		gap: clamp(5px, 1.6vw, 7px);
 	}
 	.box {
 		display: grid;
 		place-items: center;
-		width: clamp(38px, 11vw, 54px);
-		height: clamp(48px, 14vw, 64px);
-		border-radius: 16px;
+		width: clamp(36px, 10vw, 42px);
+		height: clamp(46px, 13vw, 52px);
+		border-radius: 13px;
 		border: 2px solid var(--border);
 		background: var(--surface);
 		transition:
@@ -303,8 +338,8 @@
 	.b4.filled { background: var(--lime); }
 	.b5.filled { background: var(--blob-4); }
 	.dot {
-		width: 14px;
-		height: 14px;
+		width: 11px;
+		height: 11px;
 		border-radius: 50%;
 		background: var(--on-pastel);
 		animation: pop 180ms ease;
@@ -318,7 +353,7 @@
 
 	.msg {
 		min-height: 1.4em;
-		margin: 16px 0 8px;
+		margin: 12px 0 6px;
 		font-size: 14px;
 		color: var(--text-muted);
 	}
@@ -348,9 +383,8 @@
 		.card {
 			transition: opacity 250ms ease;
 		}
-		.opening .glass.left,
-		.opening .glass.right {
-			transform: none;
+		.opening .glass {
+			clip-path: none;
 			opacity: 0;
 		}
 		.opening .card {
