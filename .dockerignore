@@ -1,0 +1,16 @@
+node_modules
+.svelte-kit
+build
+data
+backups
+*.db
+*.db-wal
+*.db-shm
+.env
+.claude
+.git
+docs
+design-system
+deploy.ps1
+*.tgz
+server

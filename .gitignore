@@ -1,0 +1,12 @@
+node_modules
+.svelte-kit
+build
+data/
+.env
+
+# Homelab / private deployment (stays local)
+docs/HOMELAB.md
+deploy.ps1
+server/
+docker-compose.yml
+.env.example

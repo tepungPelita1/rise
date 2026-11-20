@@ -1,0 +1,446 @@
+/* Rise v2 — "Playful Bento" + chaotic type. See design-system/taskhq/pages/v2-playful-bento.md */
+
+:root {
+	--font-display: 'Bricolage Grotesque', 'Geist', system-ui, sans-serif;
+	--font-body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-serif: 'Instrument Serif', Georgia, serif;
+	--font-mono: 'Space Mono', ui-monospace, monospace;
+}
+
+:root,
+:root[data-theme='light'] {
+	--bg: #fbfaf8;
+	--surface: #ffffff;
+	--surface-2: #f4f3f0;
+	--border: #e8e6e1;
+	--text: #121212;
+	--text-muted: #64625d;
+	--ink: #121212;
+	--on-ink: #ffffff;
+	--danger: #d9342b;
+	--danger-soft: #ffe1dc;
+	--warn: #b45309;
+
+	/* pastel fills (cards) — always used with --on-pastel text */
+	--study: #cdbdf7;
+	--build: #3ddc84;
+	--life: #ffe47a;
+	--self: #f8c2e4;
+	--lime: #ddf5b3;
+	--sky: #cdeff5;
+	--on-pastel: #121212;
+
+	/* heatmap */
+	--heat-0: #ebe8e1;
+	--heat-1: #b7ecc4;
+	--heat-2: #5fd17f;
+	--heat-3: #2fa556;
+	--heat-4: #1d7a3c;
+
+	--dots: rgb(18 18 18 / 0.1);
+	--blob-opacity: 0.6;
+	/* background blobs: clean, bright hues that sit well next to white cards */
+	--blob-1: #c9bcff;
+	--blob-2: #a8e3ff;
+	--blob-3: #b8f2d2;
+	--blob-4: #ffd5c4;
+	--radius: 24px;
+	--shadow: 0 1px 2px rgb(18 18 18 / 0.04);
+	--shadow-lift: 0 10px 30px -12px rgb(18 18 18 / 0.25);
+	color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+	--bg: #0f0f10;
+	--surface: #18181a;
+	--surface-2: #212124;
+	--border: #2b2b2f;
+	--text: #f3f2ee;
+	--text-muted: #a3a19c;
+	--ink: #f3f2ee;
+	--on-ink: #121212;
+	--danger: #ff7a70;
+	--danger-soft: #3a1d1b;
+	--warn: #fbbf24;
+	--heat-0: #232326;
+	--heat-1: #0e4429;
+	--heat-2: #006d32;
+	--heat-3: #26a641;
+	--heat-4: #39d353;
+	--dots: rgb(255 255 255 / 0.09);
+	--blob-opacity: 0.18;
+	--shadow: none;
+	--shadow-lift: 0 10px 30px -12px rgb(0 0 0 / 0.7);
+	color-scheme: dark;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font-body);
+	font-optical-sizing: auto;
+	font-size: 16px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+html,
+body {
+	overflow-x: clip;
+}
+
+/* dotted paper background (on html so the fixed blobs can sit between it and the page) */
+body {
+	background: transparent !important;
+}
+html {
+	background-image: radial-gradient(circle, var(--dots) 1.3px, transparent 1.6px);
+	background-size: 22px 22px;
+	background-attachment: fixed;
+	min-height: 100vh;
+}
+
+a {
+	color: inherit;
+}
+
+h1,
+h2,
+h3 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-weight: 750;
+	font-stretch: 78%;
+	line-height: 1.02;
+	letter-spacing: -0.035em;
+}
+
+/* the italic serif accent: "Today, <em>pick three</em>" */
+em,
+.serif {
+	font-family: var(--font-serif);
+	font-style: italic;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
+
+button,
+input,
+select,
+textarea {
+	font: inherit;
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 2px solid var(--ink);
+	outline-offset: 2px;
+	border-radius: 10px;
+}
+
+/* ---------- buttons: pills ---------- */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 40px;
+	padding: 0 18px;
+	border-radius: 999px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	text-decoration: none;
+	white-space: nowrap;
+	transition:
+		background 180ms ease,
+		border-color 180ms ease,
+		transform 180ms ease;
+}
+.btn:hover {
+	border-color: var(--ink);
+}
+.btn:active {
+	transform: scale(0.97);
+}
+.btn.primary {
+	background: var(--ink);
+	border-color: var(--ink);
+	color: var(--on-ink);
+}
+.btn.primary:hover {
+	opacity: 0.88;
+}
+.btn.ghost {
+	border-color: transparent;
+	background: transparent;
+	color: var(--text-muted);
+}
+.btn.ghost:hover {
+	color: var(--text);
+	background: var(--surface-2);
+}
+.btn.danger {
+	color: var(--danger);
+}
+.btn.small {
+	min-height: 32px;
+	padding: 0 12px;
+	font-size: 13px;
+}
+.btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+/* round ↗ button from the Artistry cards */
+.round {
+	display: inline-grid;
+	place-items: center;
+	width: 40px;
+	height: 40px;
+	flex: none;
+	border-radius: 50%;
+	border: 1.5px solid currentColor;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	text-decoration: none;
+	transition:
+		background 180ms ease,
+		color 180ms ease,
+		transform 180ms ease;
+}
+.round:hover {
+	background: var(--on-pastel);
+	color: #fff;
+	transform: rotate(45deg);
+}
+.round.solid {
+	background: var(--on-pastel);
+	color: #fff;
+	border-color: var(--on-pastel);
+}
+.round.solid:hover {
+	transform: scale(1.06);
+}
+
+/* pill chips (#Drawing, "3-6 years") */
+.chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px;
+	border-radius: 999px;
+	border: 1.5px solid currentColor;
+	font-family: var(--font-mono);
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	line-height: 1.4;
+	white-space: nowrap;
+}
+.chip.fill {
+	border-color: transparent;
+	color: var(--on-pastel);
+}
+.chip.study { background: var(--study); }
+.chip.build { background: var(--build); }
+.chip.life { background: var(--life); }
+.chip.self { background: var(--self); }
+
+.pastel-study { background: var(--study); color: var(--on-pastel); }
+.pastel-build { background: var(--build); color: var(--on-pastel); }
+.pastel-life { background: var(--life); color: var(--on-pastel); }
+.pastel-self { background: var(--self); color: var(--on-pastel); }
+.pastel-lime { background: var(--lime); color: var(--on-pastel); }
+.pastel-sky { background: var(--sky); color: var(--on-pastel); }
+
+/* ---------- forms ---------- */
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--text-muted);
+}
+.field input,
+.field select,
+.field textarea,
+.input {
+	min-height: 44px;
+	padding: 8px 16px;
+	border-radius: 14px;
+	border: 1px solid var(--border);
+	background: var(--surface-2);
+	font-size: 15px;
+	font-weight: 400;
+	color: var(--text);
+	transition: border-color 160ms ease;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.input:focus {
+	border-color: var(--ink);
+	outline: none;
+}
+.field textarea {
+	min-height: 90px;
+	resize: vertical;
+}
+
+/* ---------- surfaces ---------- */
+.card {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+}
+
+.page-head {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 16px;
+	margin: 8px 0 32px;
+}
+.page-head h1 {
+	font-size: clamp(44px, 7vw, 80px);
+	font-weight: 800;
+	font-stretch: 75%;
+}
+/* the serif accent leans a bit, like a sticker */
+.page-head h1 em {
+	display: inline-block;
+	font-size: 1.08em;
+	font-stretch: normal;
+	transform: rotate(-3deg) translateY(4px);
+}
+.page-head p {
+	max-width: 46ch;
+	margin: 12px 0 0;
+	color: var(--text-muted);
+}
+
+.section-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 40px 0 14px;
+	font-size: 26px;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+}
+.section-title .count {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-muted);
+}
+
+.empty {
+	padding: 28px;
+	text-align: center;
+	color: var(--text-muted);
+	border: 1.5px dashed var(--border);
+	border-radius: var(--radius);
+}
+
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex: none;
+	background: var(--text-muted);
+}
+.dot.study { background: var(--study); }
+.dot.build { background: var(--build); }
+.dot.life { background: var(--life); }
+.dot.self { background: var(--self); }
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+		animation: none !important;
+	}
+}
+
+.chip.big {
+	padding: 6px 16px;
+	font-size: 15px;
+}
+
+/* little mono labels (dates, hints) */
+.mono {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	letter-spacing: 0.02em;
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 900px) {
+	/* iOS zooms into inputs smaller than 16px */
+	.field input,
+	.field select,
+	.field textarea,
+	.input {
+		font-size: 16px;
+	}
+	.page-head {
+		flex-wrap: wrap;
+		align-items: flex-start;
+		margin-bottom: 24px;
+	}
+	.page-head h1 {
+		font-size: clamp(40px, 12vw, 64px);
+	}
+	.section-title {
+		font-size: 22px;
+		margin-top: 32px;
+	}
+	.btn.small {
+		min-height: 38px;
+	}
+}
+
+/* touch screens: no hover-only effects, no sticky lifted cards */
+@media (hover: none) {
+	.row:hover,
+	.goal:hover,
+	.q:hover {
+		transform: none !important;
+		box-shadow: var(--shadow) !important;
+	}
+	* {
+		-webkit-tap-highlight-color: transparent;
+	}
+}

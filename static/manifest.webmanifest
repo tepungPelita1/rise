@@ -1,0 +1,22 @@
+{
+	"name": "Rise — pick three",
+	"short_name": "Rise",
+	"description": "Personal task dashboard. Pick three things a day.",
+	"id": "/",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "portrait",
+	"background_color": "#fbfaf8",
+	"theme_color": "#ddf5b3",
+	"categories": ["productivity"],
+	"icons": [
+		{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{ "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+	],
+	"shortcuts": [
+		{ "name": "Add task", "short_name": "Add", "url": "/?add=1", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Inbox", "url": "/inbox", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+	]
+}
