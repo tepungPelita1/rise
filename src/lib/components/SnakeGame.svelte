@@ -1,12 +1,14 @@
 <script lang="ts">
-	// Tiny snake mini-game for the lock screen. Arrow keys / WASD on desktop, swipe on phones.
-	// Walls wrap around (easier for casual play); only biting yourself ends the run.
+	// Full-screen snake for the lock screen. The whole viewport is the board, except the
+	// "island" (the PIN card in the middle) — bump into it and the run ends.
+	// Arrow keys / WASD on desktop, swipe on phones. Screen edges wrap around.
 	import { onMount } from 'svelte';
 
-	const COLS = 16;
-	const ROWS = 16;
-	const START_MS = 150;
-	const MIN_MS = 70;
+	let { island }: { island?: HTMLElement } = $props();
+
+	const CELL = 26; // px per grid cell
+	const START_MS = 120;
+	const MIN_MS = 55;
 	const BEST_KEY = 'rise-snake-best';
 
 	type P = { x: number; y: number };
@@ -15,12 +17,16 @@
 	const OPP: Record<Dir, Dir> = { up: 'down', down: 'up', left: 'right', right: 'left' };
 
 	let canvas: HTMLCanvasElement | undefined = $state();
-	let wrap: HTMLDivElement | undefined = $state();
 
-	let phase = $state<'ready' | 'playing' | 'paused' | 'over'>('ready');
+	let phase = $state<'playing' | 'paused' | 'over'>('playing');
 	let score = $state(0);
 	let best = $state(0);
 
+	let cols = 0;
+	let rows = 0;
+	let offX = 0; // centers the grid in the viewport
+	let offY = 0;
+	let blocked = new Set<number>();
 	let snake: P[] = [];
 	let dir: Dir = 'right';
 	let queue: Dir[] = [];
@@ -29,7 +35,10 @@
 	let acc = 0;
 	let last = 0;
 	let raf = 0;
-	let pop = 0; // food bite flash
+	let pop = 0;
+
+	const key = (x: number, y: number) => y * cols + x;
+	const isBlocked = (x: number, y: number) => blocked.has(key(x, y));
 
 	function readBest() {
 		try {
@@ -46,19 +55,42 @@
 		}
 	}
 
+	/** grid size from the viewport + which cells the island covers (with a little margin) */
+	function layout() {
+		const w = window.innerWidth;
+		const h = window.innerHeight;
+		cols = Math.max(8, Math.floor(w / CELL));
+		rows = Math.max(8, Math.floor(h / CELL));
+		offX = (w - cols * CELL) / 2;
+		offY = (h - rows * CELL) / 2;
+		blocked = new Set();
+		const r = island?.getBoundingClientRect();
+		if (!r) return;
+		const m = 6;
+		const x0 = Math.max(0, Math.floor((r.left - m - offX) / CELL));
+		const x1 = Math.min(cols - 1, Math.floor((r.right + m - offX) / CELL));
+		const y0 = Math.max(0, Math.floor((r.top - m - offY) / CELL));
+		const y1 = Math.min(rows - 1, Math.floor((r.bottom + m - offY) / CELL));
+		for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) blocked.add(key(x, y));
+	}
+
 	function placeFood() {
+		const taken = new Set(snake.map((s) => key(s.x, s.y)));
 		const free: P[] = [];
-		for (let y = 0; y < ROWS; y++)
-			for (let x = 0; x < COLS; x++) if (!snake.some((s) => s.x === x && s.y === y)) free.push({ x, y });
+		for (let y = 0; y < rows; y++)
+			for (let x = 0; x < cols; x++) if (!blocked.has(key(x, y)) && !taken.has(key(x, y))) free.push({ x, y });
 		food = free[Math.floor(Math.random() * free.length)] ?? { x: 0, y: 0 };
 	}
 
 	function reset() {
-		const cy = Math.floor(ROWS / 2);
+		layout();
+		// start in the first free row from the top
+		let y = 1;
+		while (y < rows - 1 && [1, 2, 3, 4].some((x) => isBlocked(x, y))) y++;
 		snake = [
-			{ x: 5, y: cy },
-			{ x: 4, y: cy },
-			{ x: 3, y: cy }
+			{ x: 4, y },
+			{ x: 3, y },
+			{ x: 2, y }
 		];
 		dir = 'right';
 		queue = [];
@@ -68,50 +100,42 @@
 		placeFood();
 	}
 
-	function start() {
-		if (phase === 'playing') return;
-		if (phase !== 'paused') reset();
+	function restart() {
+		reset();
 		phase = 'playing';
-		wrap?.focus({ preventScroll: true });
 	}
 
 	function turn(d: Dir) {
-		if (phase === 'ready' || phase === 'over') {
-			start();
-		} else if (phase === 'paused') {
-			phase = 'playing';
-		}
+		if (phase === 'over') return restart();
+		if (phase === 'paused') phase = 'playing';
 		const lastDir = queue.length ? queue[queue.length - 1] : dir;
 		if (d === lastDir || d === OPP[lastDir] || queue.length >= 2) return;
 		queue.push(d);
+	}
+
+	function die() {
+		phase = 'over';
+		if (score > best) {
+			best = score;
+			saveBest();
+		}
+		navigator.vibrate?.(80);
 	}
 
 	function step() {
 		if (queue.length) dir = queue.shift()!;
 		const v = VEC[dir];
 		const head = snake[0];
-		const next = { x: (head.x + v.x + COLS) % COLS, y: (head.y + v.y + ROWS) % ROWS };
+		const next = { x: (head.x + v.x + cols) % cols, y: (head.y + v.y + rows) % rows };
+		if (isBlocked(next.x, next.y)) return die();
 		const eating = next.x === food.x && next.y === food.y;
-		// the tail moves away this tick unless we're growing, so it's safe to step onto
 		const body = eating ? snake : snake.slice(0, -1);
-		if (body.some((s) => s.x === next.x && s.y === next.y)) {
-			phase = 'over';
-			if (score > best) {
-				best = score;
-				saveBest();
-			}
-			navigator.vibrate?.(80);
-			return;
-		}
+		if (body.some((s) => s.x === next.x && s.y === next.y)) return die();
 		snake.unshift(next);
 		if (eating) {
 			score += 1;
 			pop = 1;
-			stepMs = Math.max(MIN_MS, START_MS - score * 4);
-			if (snake.length >= COLS * ROWS) {
-				phase = 'over';
-				return;
-			}
+			stepMs = Math.max(MIN_MS, START_MS - score * 3);
 			placeFood();
 		} else {
 			snake.pop();
@@ -128,34 +152,25 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 		const dpr = window.devicePixelRatio || 1;
-		const size = canvas.clientWidth;
-		if (canvas.width !== Math.round(size * dpr)) {
-			canvas.width = Math.round(size * dpr);
-			canvas.height = Math.round(size * dpr);
+		const w = canvas.clientWidth;
+		const h = canvas.clientHeight;
+		if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+			canvas.width = Math.round(w * dpr);
+			canvas.height = Math.round(h * dpr);
 		}
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-		const cell = size / COLS;
+		ctx.clearRect(0, 0, w, h);
+		ctx.translate(offX, offY);
 
-		const surface = css('--surface-2', '#f4f3f0');
-		const dots = css('--dots', 'rgba(0,0,0,.1)');
 		const ink = css('--ink', '#121212');
-		const palette = ['--study', '--sky', '--life', '--self', '--lime', '--blob-4'].map((n) => css(n, '#cdbdf7'));
+		const onInk = css('--on-ink', '#ffffff');
+		const c = CELL;
 
-		ctx.fillStyle = surface;
-		ctx.fillRect(0, 0, size, size);
-		ctx.fillStyle = dots;
-		for (let y = 0; y < ROWS; y++)
-			for (let x = 0; x < COLS; x++) {
-				ctx.beginPath();
-				ctx.arc(x * cell + cell / 2, y * cell + cell / 2, 1.2, 0, Math.PI * 2);
-				ctx.fill();
-			}
-
-		// food: a little pulsing star
+		// food: a pulsing black star
 		const t = performance.now() / 300;
-		const r = cell * (0.42 + Math.sin(t) * 0.05);
-		const fx = food.x * cell + cell / 2;
-		const fy = food.y * cell + cell / 2;
+		const r = c * (0.42 + Math.sin(t) * 0.06);
+		const fx = food.x * c + c / 2;
+		const fy = food.y * c + c / 2;
 		ctx.fillStyle = ink;
 		ctx.beginPath();
 		for (let i = 0; i < 10; i++) {
@@ -166,31 +181,41 @@
 		ctx.closePath();
 		ctx.fill();
 
-		// snake: pastel candy segments with an ink outline
-		const pad = cell * 0.08;
-		ctx.lineWidth = Math.max(1.5, cell * 0.08);
-		ctx.strokeStyle = ink;
-		for (let i = snake.length - 1; i >= 0; i--) {
-			const s = snake[i];
-			const grow = i === 0 ? pop * cell * 0.12 : 0;
-			ctx.fillStyle = palette[i % palette.length];
-			ctx.beginPath();
-			ctx.roundRect(s.x * cell + pad - grow, s.y * cell + pad - grow, cell - pad * 2 + grow * 2, cell - pad * 2 + grow * 2, cell * 0.3);
-			ctx.fill();
-			ctx.stroke();
-		}
-
-		// eyes on the head
+		// snake: one solid black body, segments joined into a chunky rounded line
 		if (snake.length) {
-			const h = snake[0];
-			const v = VEC[dir];
-			const cx = h.x * cell + cell / 2;
-			const cy = h.y * cell + cell / 2;
-			const side = { x: -v.y, y: v.x };
+			ctx.strokeStyle = ink;
+			ctx.lineCap = 'round';
+			ctx.lineJoin = 'round';
+			ctx.lineWidth = c * 0.72;
+			ctx.beginPath();
+			for (let i = 0; i < snake.length; i++) {
+				const s = snake[i];
+				const px = s.x * c + c / 2;
+				const py = s.y * c + c / 2;
+				const prev = snake[i - 1];
+				// break the line where the body wraps across a screen edge
+				if (i === 0 || Math.abs(prev.x - s.x) + Math.abs(prev.y - s.y) > 1) ctx.moveTo(px, py);
+				else ctx.lineTo(px, py);
+			}
+			if (snake.length === 1) ctx.lineTo(snake[0].x * c + c / 2 + 0.1, snake[0].y * c + c / 2);
+			ctx.stroke();
+
+			// head
+			const h0 = snake[0];
+			const cx = h0.x * c + c / 2;
+			const cy = h0.y * c + c / 2;
 			ctx.fillStyle = ink;
+			ctx.beginPath();
+			ctx.arc(cx, cy, c * (0.44 + pop * 0.12), 0, Math.PI * 2);
+			ctx.fill();
+
+			// eyes
+			const v = VEC[dir];
+			const side = { x: -v.y, y: v.x };
+			ctx.fillStyle = onInk;
 			for (const k of [-1, 1]) {
 				ctx.beginPath();
-				ctx.arc(cx + v.x * cell * 0.15 + side.x * k * cell * 0.18, cy + v.y * cell * 0.15 + side.y * k * cell * 0.18, cell * 0.08, 0, Math.PI * 2);
+				ctx.arc(cx + v.x * c * 0.14 + side.x * k * c * 0.17, cy + v.y * c * 0.14 + side.y * k * c * 0.17, c * 0.09, 0, Math.PI * 2);
 				ctx.fill();
 			}
 		}
@@ -217,27 +242,31 @@
 	};
 
 	function onKey(e: KeyboardEvent) {
-		// don't steal typing from other inputs (e.g. the PIN box)
 		const el = e.target as HTMLElement | null;
-		if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.closest('.snake') === null) return;
+		const inField = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
 		const d = KEYS[e.key];
-		if (d) {
+		// arrows always steer (the PIN box is digits only); letters stay with the PIN box
+		if (d && (!inField || e.key.startsWith('Arrow'))) {
 			e.preventDefault();
 			turn(d);
-		} else if (e.key === ' ' || e.key === 'Enter') {
-			if (el?.tagName === 'BUTTON') return;
+		} else if (e.key === ' ' && !inField && el?.tagName !== 'BUTTON') {
 			e.preventDefault();
 			if (phase === 'playing') phase = 'paused';
-			else start();
+			else if (phase === 'paused') phase = 'playing';
+			else restart();
 		}
 	}
 
-	// swipe: track from pointerdown, fire once the finger travels far enough, then re-anchor
+	// swipe anywhere outside the card: fire once the finger travels far enough, then re-anchor
 	let sx = 0;
 	let sy = 0;
 	let tracking = false;
 	function onDown(e: PointerEvent) {
-		if (e.pointerType === 'mouse') return;
+		if (e.pointerType === 'mouse') {
+			if (phase === 'over') restart();
+			else if (phase === 'paused') phase = 'playing';
+			return;
+		}
 		tracking = true;
 		sx = e.clientX;
 		sy = e.clientY;
@@ -252,10 +281,8 @@
 		sy = e.clientY;
 	}
 	function onUp() {
+		if (tracking && phase === 'over') restart();
 		tracking = false;
-	}
-	function onTap() {
-		if (phase !== 'playing') start();
 	}
 
 	onMount(() => {
@@ -265,156 +292,88 @@
 		const onVis = () => {
 			if (document.hidden && phase === 'playing') phase = 'paused';
 		};
+		// screen size changed: the grid changes too, so start a fresh run
+		const onResize = () => {
+			if (phase === 'playing') phase = 'paused';
+			reset();
+		};
 		document.addEventListener('visibilitychange', onVis);
+		window.addEventListener('resize', onResize);
 		return () => {
 			cancelAnimationFrame(raf);
 			document.removeEventListener('visibilitychange', onVis);
+			window.removeEventListener('resize', onResize);
 		};
 	});
 </script>
 
 <svelte:window onkeydown={onKey} />
 
-<div class="snake">
-	<div class="hud">
-		<span class="pill score">🍬 {score}</span>
-		<span class="title">ular<em>gula</em></span>
-		<span class="pill best">best {best}</span>
-	</div>
+<canvas
+	bind:this={canvas}
+	class="field"
+	aria-label="Snake game. Arrow keys or swipe to steer. Don't hit the card in the middle."
+	onpointerdown={onDown}
+	onpointermove={onMove}
+	onpointerup={onUp}
+	onpointercancel={onUp}
+></canvas>
 
-	<!-- keyboard is handled on window (svelte:window above) -->
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-	<div
-		bind:this={wrap}
-		class="board"
-		tabindex="0"
-		role="application"
-		aria-label="Snake game. Use arrow keys or swipe to steer."
-		onpointerdown={onDown}
-		onpointermove={onMove}
-		onpointerup={onUp}
-		onpointercancel={onUp}
-		onclick={onTap}
-	>
-		<canvas bind:this={canvas}></canvas>
-
-		{#if phase !== 'playing'}
-			<div class="overlay">
-				{#if phase === 'over'}
-					<p class="big">alamak! 💥</p>
-					<p class="sub">score <strong>{score}</strong>{score > 0 && score >= best ? ' · new best!' : ''}</p>
-				{:else if phase === 'paused'}
-					<p class="big">paused</p>
-				{:else}
-					<p class="big">bosan? main jap 🐍</p>
-				{/if}
-				<span class="go">{phase === 'over' ? 'main lagi' : phase === 'paused' ? 'sambung' : 'tap / tekan arrow'}</span>
-			</div>
+<div class="hud" aria-live="polite">
+	<span class="pill">🍬 {score}</span>
+	<span class="state">
+		{#if phase === 'over'}
+			alamak! 💥 <em>tap / arrow untuk main lagi</em>
+		{:else if phase === 'paused'}
+			paused · <em>space untuk sambung</em>
+		{:else}
+			<span class="desk">arrow / WASD · jangan langgar kotak</span>
+			<span class="touch">swipe · jangan langgar kotak</span>
 		{/if}
-	</div>
-
-	<p class="help">
-		<span class="desk">⬆️⬇️⬅️➡️ arrow key · space untuk pause</span>
-		<span class="touch">swipe atas/bawah/kiri/kanan untuk gerak</span>
-	</p>
+	</span>
+	<span class="pill">best {best}</span>
 </div>
 
 <style>
-	.snake {
-		width: 100%;
+	.field {
+		position: fixed;
+		inset: 0;
+		width: 100vw;
+		height: 100dvh;
+		display: block;
+		touch-action: none; /* swipes steer the snake, not the page */
+		cursor: crosshair;
+		animation: fade-in 300ms ease;
 	}
 	.hud {
+		position: fixed;
+		top: 16px;
+		left: 50%;
+		transform: translateX(-50%);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 8px;
-		margin-bottom: 10px;
-	}
-	.pill {
-		padding: 4px 10px;
-		border-radius: 999px;
-		font-family: var(--font-mono);
-		font-size: 12px;
-		border: 1.5px solid var(--ink);
-	}
-	.score {
-		background: var(--life);
-		color: var(--on-pastel);
-	}
-	.best {
-		background: var(--sky);
-		color: var(--on-pastel);
-	}
-	.title {
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-stretch: 80%;
-		font-size: 22px;
-		letter-spacing: -0.03em;
-	}
-	.title em {
-		font-family: var(--font-serif);
-		font-weight: 400;
-		letter-spacing: 0;
-	}
-	.board {
-		position: relative;
-		width: 100%;
-		aspect-ratio: 1;
-		border-radius: 20px;
-		overflow: hidden;
-		border: 2px solid var(--ink);
-		touch-action: none; /* swipes steer the snake, not the page */
-		user-select: none;
-		-webkit-user-select: none;
-		cursor: pointer;
-		outline: none;
-	}
-	.board:focus-visible {
-		box-shadow: 0 0 0 3px var(--study);
-	}
-	canvas {
-		display: block;
-		width: 100%;
-		height: 100%;
-	}
-	.overlay {
-		position: absolute;
-		inset: 0;
-		display: grid;
-		place-content: center;
-		justify-items: center;
-		gap: 6px;
-		background: color-mix(in srgb, var(--surface) 55%, transparent);
-		backdrop-filter: blur(3px);
-		-webkit-backdrop-filter: blur(3px);
-	}
-	.big {
-		margin: 0;
-		font-family: var(--font-display);
-		font-weight: 800;
-		font-size: 24px;
-		letter-spacing: -0.02em;
-	}
-	.sub {
-		margin: 0;
-		font-size: 14px;
-		color: var(--text-muted);
-	}
-	.go {
-		margin-top: 6px;
-		padding: 8px 16px;
+		gap: 10px;
+		padding: 6px 8px;
 		border-radius: 999px;
 		background: var(--ink);
 		color: var(--on-ink);
 		font-family: var(--font-mono);
 		font-size: 12px;
-		letter-spacing: 0.06em;
+		white-space: nowrap;
+		box-shadow: var(--shadow-lift);
+		z-index: 2;
+		pointer-events: none;
+		animation: drop-in 380ms cubic-bezier(0.3, 1.4, 0.5, 1);
 	}
-	.help {
-		margin: 10px 0 0;
-		font-size: 12px;
-		color: var(--text-muted);
+	.pill {
+		padding: 3px 10px;
+		border-radius: 999px;
+		background: var(--on-ink);
+		color: var(--ink);
+	}
+	.state em {
+		font-family: var(--font-serif);
+		font-size: 15px;
 	}
 	.touch {
 		display: none;
@@ -426,5 +385,11 @@
 		.touch {
 			display: inline;
 		}
+	}
+	@keyframes fade-in {
+		from { opacity: 0; }
+	}
+	@keyframes drop-in {
+		from { transform: translate(-50%, -40px); opacity: 0; }
 	}
 </style>

@@ -18,6 +18,7 @@
 	let input: HTMLInputElement | undefined = $state();
 	let form: HTMLFormElement | undefined = $state();
 	let playing = $state(false);
+	let stack: HTMLDivElement | undefined = $state();
 
 	$effect(() => {
 		retryAt = data.retryAt;
@@ -63,15 +64,24 @@
 </script>
 
 
-<div class="lock" class:opening>
-	<div class="glass" aria-hidden="true"></div>
+<div class="lock" class:opening class:playing>
+	<!-- one seamless pane at rest; two halves only exist while it splits open -->
+	<div class="glass full" aria-hidden="true"></div>
+	{#if opening}
+		<div class="glass half left" aria-hidden="true"></div>
+		<div class="glass half right" aria-hidden="true"></div>
+		<div class="burst" aria-hidden="true">
+			{#each Array.from({ length: 14 }, (_, i) => i) as i (i)}
+				<span style="--a: {i * (360 / 14)}deg; --c: var({['--study', '--sky', '--life', '--self', '--lime', '--build', '--blob-4'][i % 7]})"></span>
+			{/each}
+		</div>
+	{/if}
 
-	<div class="stack">
-	{#if playing}
-		<section class="card game" aria-label="Mini game">
-			<SnakeGame />
-		</section>
-	{:else}
+	{#if playing && !opening}
+		<SnakeGame island={stack} />
+	{/if}
+
+	<div class="stack" bind:this={stack}>
 	<form
 		bind:this={form}
 		class="card"
@@ -86,10 +96,10 @@
 				if (result.type === 'success') {
 					const next = (result.data?.next as string) ?? '/';
 					opening = true;
-					setTimeout(() => goto(next, { invalidateAll: true }), reduced() ? 250 : 800);
+					setTimeout(() => goto(next, { invalidateAll: true }), reduced() ? 250 : 1000);
 				} else if (result.type === 'redirect') {
 					opening = true;
-					setTimeout(() => goto(result.location, { invalidateAll: true }), reduced() ? 250 : 800);
+					setTimeout(() => goto(result.location, { invalidateAll: true }), reduced() ? 250 : 1000);
 				} else if (result.type === 'failure') {
 					const d = result.data as { message?: string; retryAt?: number } | undefined;
 					if (d?.retryAt) {
@@ -160,11 +170,10 @@
 			</label>
 		{/if}
 	</form>
-	{/if}
 
 	{#if !opening}
-		<button type="button" class="toggle" onclick={() => (playing = !playing)}>
-			{playing ? '🔒 balik masuk PIN' : '🐍 bosan? main game'}
+		<button type="button" class="toggle" class:stop={playing} onclick={() => (playing = !playing)}>
+			{playing ? 'stop' : 'start'}
 		</button>
 	{/if}
 	</div>
@@ -181,23 +190,69 @@
 		overflow: hidden;
 	}
 
-	/* one seamless frosted pane; on unlock a zero-width gap in the middle
-	   widens outward (clip-path), so it still "splits open" with no seam at rest */
+	/* frosted glass: one seamless pane at rest. On unlock it is swapped for two
+	   halves that slam apart like doors (the seam only exists while they move). */
 	.glass {
 		position: absolute;
 		inset: 0;
 		background: color-mix(in srgb, var(--bg) 55%, transparent);
 		backdrop-filter: blur(28px) saturate(1.1);
 		-webkit-backdrop-filter: blur(28px) saturate(1.1);
-		clip-path: polygon(0 0, 50% 0, 50% 100%, 50% 100%, 50% 0, 100% 0, 100% 100%, 0 100%);
-		transition: clip-path 800ms cubic-bezier(0.7, 0, 0.2, 1);
 	}
-	.opening .glass {
-		clip-path: polygon(0 0, 0 0, 0 100%, 100% 100%, 100% 0, 100% 0, 100% 100%, 0 100%);
+	.opening .glass.full {
+		display: none;
+	}
+	.glass.half {
+		right: auto;
+		width: 50%;
+		box-shadow: 0 0 40px rgb(18 18 18 / 0.12);
+		animation: door-l 900ms cubic-bezier(0.75, 0, 0.15, 1) 120ms forwards;
+	}
+	.glass.half.right {
+		left: 50%;
+		animation-name: door-r;
+	}
+	@keyframes door-l {
+		0% { transform: translateX(0); }
+		18% { transform: translateX(1.5%); }
+		100% { transform: translateX(-105%) skewX(-4deg); }
+	}
+	@keyframes door-r {
+		0% { transform: translateX(0); }
+		18% { transform: translateX(-1.5%); }
+		100% { transform: translateX(105%) skewX(4deg); }
+	}
+
+	/* pastel confetti burst from the card */
+	.burst {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		z-index: 2;
+		pointer-events: none;
+	}
+	.burst span {
+		position: absolute;
+		width: 14px;
+		height: 14px;
+		margin: -7px;
+		border-radius: 4px;
+		background: var(--c);
+		border: 2px solid var(--ink);
+		animation: burst 900ms cubic-bezier(0.2, 0.8, 0.3, 1) 80ms both;
+	}
+	.burst span:nth-child(odd) {
+		border-radius: 50%;
+	}
+	@keyframes burst {
+		0% { transform: rotate(var(--a)) translateY(0) scale(0.2); opacity: 1; }
+		70% { opacity: 1; }
+		100% { transform: rotate(var(--a)) translateY(-46vmin) scale(1) rotate(200deg); opacity: 0; }
 	}
 
 	.stack {
 		position: relative;
+		z-index: 1;
 		display: grid;
 		justify-items: center;
 		gap: 12px;
@@ -223,8 +278,14 @@
 		transform: translate(2px, 2px);
 		box-shadow: 1px 1px 0 var(--ink);
 	}
-	.card.game {
-		padding: 20px 18px 16px;
+	.toggle {
+		min-width: 96px;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		font-weight: 700;
+	}
+	.toggle.stop {
+		background: var(--self);
 	}
 	.card {
 		position: relative;
@@ -240,8 +301,12 @@
 			opacity 500ms ease;
 	}
 	.opening .card {
-		transform: scale(1.12);
-		opacity: 0;
+		animation: card-out 700ms cubic-bezier(0.5, 0, 0.3, 1) forwards;
+	}
+	@keyframes card-out {
+		0% { transform: scale(1); }
+		25% { transform: scale(1.08) rotate(-2deg); opacity: 1; }
+		100% { transform: scale(0.4) translateY(-30px) rotate(6deg); opacity: 0; }
 	}
 	.card.shaking {
 		animation: shake 420ms ease;
@@ -383,8 +448,15 @@
 		.card {
 			transition: opacity 250ms ease;
 		}
-		.opening .glass {
-			clip-path: none;
+		.glass.half,
+		.burst,
+		.opening .card {
+			animation: none;
+		}
+		.opening .glass.half {
+			display: none;
+		}
+		.opening .card {
 			opacity: 0;
 		}
 		.opening .card {
