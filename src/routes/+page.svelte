@@ -299,7 +299,7 @@
 		font-size: 54px;
 		font-weight: 700;
 		line-height: 0.8;
-		color: var(--border);
+		color: color-mix(in srgb, var(--text-muted) 40%, transparent);
 		transition: color 300ms ease;
 	}
 	.plus.on {

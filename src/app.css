@@ -9,12 +9,12 @@
 
 :root,
 :root[data-theme='light'] {
-	--bg: #fbfaf8;
-	--surface: #ffffff;
-	--surface-2: #f4f3f0;
-	--border: #e8e6e1;
+	--bg: #f3f1ec;
+	--surface: #fffefb;
+	--surface-2: #ebe8e1;
+	--border: #d8d4ca;
 	--text: #121212;
-	--text-muted: #64625d;
+	--text-muted: #55534d;
 	--ink: #121212;
 	--on-ink: #ffffff;
 	--danger: #d9342b;
@@ -22,30 +22,30 @@
 	--warn: #b45309;
 
 	/* pastel fills (cards) — always used with --on-pastel text */
-	--study: #cdbdf7;
-	--build: #3ddc84;
-	--life: #ffe47a;
-	--self: #f8c2e4;
-	--lime: #ddf5b3;
-	--sky: #cdeff5;
+	--study: #c6b8f0;
+	--build: #4cc685;
+	--life: #f6db72;
+	--self: #f0bedb;
+	--lime: #d5eba8;
+	--sky: #c2e3ec;
 	--on-pastel: #121212;
 
 	/* heatmap */
-	--heat-0: #ebe8e1;
+	--heat-0: #e2ded4;
 	--heat-1: #b7ecc4;
 	--heat-2: #5fd17f;
 	--heat-3: #2fa556;
 	--heat-4: #1d7a3c;
 
-	--dots: rgb(18 18 18 / 0.1);
-	--blob-opacity: 0.6;
-	/* background blobs: clean, bright hues that sit well next to white cards */
-	--blob-1: #c9bcff;
-	--blob-2: #a8e3ff;
-	--blob-3: #b8f2d2;
-	--blob-4: #ffd5c4;
+	--dots: rgb(18 18 18 / 0.12);
+	--blob-opacity: 0.4;
+	/* background blobs: soft, muted hues so white cards stand out */
+	--blob-1: #cfc7ef;
+	--blob-2: #c3dcea;
+	--blob-3: #cde6d6;
+	--blob-4: #f1d6c8;
 	--radius: 24px;
-	--shadow: 0 1px 2px rgb(18 18 18 / 0.04);
+	--shadow: 0 1px 2px rgb(18 18 18 / 0.06), 0 0 0 1px rgb(18 18 18 / 0.02);
 	--shadow-lift: 0 10px 30px -12px rgb(18 18 18 / 0.25);
 	color-scheme: light;
 }

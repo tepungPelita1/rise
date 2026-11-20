@@ -2,6 +2,8 @@
 
 Personal task dashboard. Pick max 3 things a day. See [docs/SPEC.md](docs/SPEC.md).
 
+**Live:** [rise.ajamlab.my](https://rise.ajamlab.my) (locked behind a 6-digit PIN)
+
 ## Run (laptop)
 
 ```
